@@ -5,7 +5,7 @@ import nest_asyncio
 from pyrogram import Client, filters
 from pyrogram.types import (
     Message, InlineKeyboardMarkup, InlineKeyboardButton,
-    InlineQuery, InlineQueryResultPhoto, ChosenInlineResult
+    InlineQuery, InlineQueryResultPhoto
 )
 from pyrogram.errors import UserIsBlocked, PeerIdInvalid
 
@@ -16,12 +16,12 @@ API_ID = int(os.environ.get("API_ID", 0))
 API_HASH = os.environ.get("API_HASH", "")
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 
-# ⚠️ ဒီနေရာမှာ သင့် Telegram User ID ကိန်းဂဏန်း အမှန်ထည့်ပါ (ဥပမာ: 8900371852)
+# ⚠️ သင့် Telegram User ID
 OWNER_ID = 8900371852
 
 app = Client("aura_character_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
-# Data Stores (Database အဖြစ် Memory သုံးထားပါသည်)
+# Memory Stores
 cards_db = {}     # {card_id: {"photo_id": ..., "text": ...}}
 users_db = set()  # {user_id1, user_id2, ...}
 blocked_users = set()
@@ -29,7 +29,7 @@ blocked_users = set()
 # ---------------------------------------------------------
 # 1. Channel ထဲသို့ Post ရောက်လာပါက အလိုအလျောက် သိမ်းဆည်းခြင်း
 # ---------------------------------------------------------
-@app.on_channel_post(filters.photo)
+@app.on_message(filters.channel & filters.photo)
 async def auto_save_card(client, message: Message):
     caption = message.caption or ""
     
@@ -45,7 +45,6 @@ async def auto_save_card(client, message: Message):
         rarity = rarity_match.group(1).strip() if rarity_match else "Unknown"
         anime = anime_match.group(1).strip() if anime_match else "Unknown"
 
-        # Card Text ပြန်လည် ပုံဖော်ခြင်း
         clean_text = (
             f"👤 Name: {name}\n"
             f"🆔 ID: {card_id}\n"
@@ -92,7 +91,6 @@ async def start_cmd(client, message: Message):
 
 @app.on_message(filters.command("search"))
 async def search_cmd(client, message: Message):
-    bot_user = await client.get_me()
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("🔍 Search Characters", switch_inline_query_current_chat="")]
     ])
@@ -121,7 +119,7 @@ async def check_cmd(client, message: Message):
         await message.reply_text("❌ ရှာဖွေသော Card ID မတွေ့ရှိပါ။")
 
 # ---------------------------------------------------------
-# 3. Inline Query (မီးခိုးရောင် ခလုတ်နှိပ်၍ ပုံများ ရွေးချယ်ခြင်း)
+# 3. Inline Query (မီးခိုးရောင် ခလုတ်နှိပ်၍ ပုံများ ရှာဖွေခြင်း)
 # ---------------------------------------------------------
 @app.on_inline_query()
 async def inline_search(client, inline_query: InlineQuery):
@@ -143,7 +141,7 @@ async def inline_search(client, inline_query: InlineQuery):
                     reply_markup=keyboard
                 )
             )
-            if len(results) >= 50: # Limit max inline results
+            if len(results) >= 50:
                 break
 
     await inline_query.answer(results, cache_time=1)
@@ -182,7 +180,7 @@ async def broadcast_cmd(client, message: Message):
         try:
             await to_broadcast.copy(chat_id=user_id)
             success += 1
-            await asyncio.sleep(0.05) # Rate limit
+            await asyncio.sleep(0.05)
         except (UserIsBlocked, PeerIdInvalid):
             blocked_users.add(user_id)
             failed += 1
@@ -195,26 +193,7 @@ async def broadcast_cmd(client, message: Message):
         f"❌ ကျရှုံး/Block: `{failed}`"
     )
 
-# ---------------------------------------------------------
-# 5. Menu Commands (အပြာရောင် ဘောင်လေး) တပ်ဆင်ခြင်း
-# ---------------------------------------------------------
-async def set_bot_commands():
-    from pyrogram.types import BotCommand
-    commands = [
-        BotCommand("start", "Bot ကို စတင်အသုံးပြုရန်"),
-        BotCommand("search", "ကဒ်များ ရှာဖွေရန်"),
-        BotCommand("check", "Card ID ဖြင့် ရှာရန် (e.g. /check 530)"),
-        BotCommand("stats", "Owner မနဖြေင့် Stats ကြည့်ရန်"),
-        BotCommand("broadcast", "Owner မနဖြေင့် ကြော်ညာပို့ရန်")
-    ]
-    await app.set_bot_commands(commands)
-
 print("Aura Character Bot စတင်အလုပ်လုပ်နေပါပြီ...")
 
-async def main():
-    await app.start()
-    await set_bot_commands()
-    await asyncio.Event().wait()
-
 if __name__ == "__main__":
-    asyncio.run(main())
+    app.run()
