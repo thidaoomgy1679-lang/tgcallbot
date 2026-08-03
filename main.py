@@ -1,13 +1,16 @@
-import nest_asyncio
-nest_asyncio.apply()
 import os
 import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import Message
 
-API_ID = os.environ.get("30077734")
-API_HASH = os.environ.get("884d4e8e52cf6752fff31a3040aed2a1")
-BOT_TOKEN = os.environ.get("8938762590:AAH_yrQKgYSr76zfnLl1qIcAyHAaarVnAtU")
+# Environment variables များ ယူခြင်း
+API_ID = os.environ.get("API_ID")
+API_HASH = os.environ.get("API_HASH")
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+
+# API_ID ကို int (ကိန်းဂဏန်း) အဖြစ် အတိအကျ ပြောင်းခြင်း
+if API_ID:
+    API_ID = int(API_ID)
 
 app = Client("tag_all_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
